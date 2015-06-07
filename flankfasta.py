@@ -14,12 +14,12 @@ import sys
 import os
 from os.path import isfile, join, abspath, dirname, basename
 
+EMAIL   = 'email'
 AMINO   = 'amino'
 NUCLEIC = 'nucleic'
 aln_ext = '.fasta_aln'
 aln_ext__optimized = '_gb.txt'
 aln_ext__flanked   = '_flanked.fasta'
-script__tcoffee_structural_alignment   = 'biocomp.tcoffee_structural_alignment'
 script__gblocks_alignment_optimization = 'biocomp.gblocks'
 GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
@@ -124,20 +124,24 @@ def get_command_line(argv):
     Returns the configuraion from the given command line arguments:
     -a/--amino    directory whose files contain amino acid sequences
     -n/--nucleic  directory whose files contain nucleic acid sequences
+    -e/--email    the user's e-mail
     '''
+    email = ''
     nucleic_files = []
     amino_files   = []
     config = {}
+    sopt_mail = 'e'
     sopt_amin = 'a'
     sopt_nucl = 'n'
+    lopt_mail = 'email'
     lopt_amin = 'amino'
     lopt_nucl = 'nucleic'
 
     try:
         opts, args = getopt.getopt(
                 argv,
-                sopt_amin + ':' + sopt_nucl + ':',
-                [str('--' + lopt_amin), str('--' + lopt_nucl)])
+                sopt_mail + ':' + sopt_amin + ':' + sopt_nucl + ':',
+                [str('--' + lopt_mail), str('--' + lopt_amin), str('--' + lopt_nucl)])
     except getopt.GetoptError:
         print_usage()
         sys.exit()
@@ -147,13 +151,16 @@ def get_command_line(argv):
             nucleic_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
         if opt in (str('-' + sopt_amin), lopt_amin):
             amino_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
+        if opt in (str('-' + sopt_mail), lopt_mail):
+            email = arg
 
-    if (len(amino_files) + len(nucleic_files)) == 0:
+    if ((len(amino_files) + len(nucleic_files)) == 0) or (email == ''):
         print_usage()
         sys.exit()
 
     config[NUCLEIC] = nucleic_files
     config[AMINO]   = amino_files
+    config[EMAIL]   = email
     return config
 
 
@@ -235,7 +242,36 @@ def structural_alignment(in_file):
     # Tcoffee alignment
     print '\n# Tcoffee structural alignment on file \"' + in_file + '\"'
     print '#'
-    subprocess.call([script__tcoffee_structural_alignment, in_file])
+    
+    # structural alignment step 1:
+    #
+    # Make a multiple profile alignment of all the sequences in the
+    # given file using Tcoffee Psi-BLAST
+    subprocess.call(['t_coffee', str('-in=S' + in_file),
+        '-mode psicoffee', str('-email ' + config[EMAIL]),
+        '-multi_core', '-output=fasta_aln'])
+
+    # structural alignment step 2:
+    #
+    # Fetch candidate templates via BLAST against the PDB, and use
+    # the candidate's structure to obtain the sequence alignment
+    # out of the structural alignment.
+    # In case of missing template is missing, proba_pair (the
+    # default T-Coffee method for building libraries) is used
+    # instead of SAP.
+    # By default Expresso fetches only XRAY structures, but it is
+    # possible to control this behavior via the flag -pdb_type=dn
+    # where d for is for diffraction (X-Ray) and n for NMR.
+    subprocess.call(['t_coffee', str('-in=S' + in_file),
+        '-mode expresso', '-pdb_type=dn', str('-email ' + config[EMAIL]),
+        '-multi_core', '-output=fasta_aln'])
+
+    # structural alignment step 3:
+    #
+    # Refinement of the previous methods
+    subprocess.call(['t_coffee', str('-in=S' + in_file),
+        '-mode accurate', str('-email ' + config[EMAIL]),
+        '-multi_core', '-output=fasta_aln'])
 
 
     # read the fasta alignment as a dictionary
