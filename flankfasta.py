@@ -14,11 +14,7 @@ import sys
 import os
 from os.path import isfile, join, abspath, dirname, basename
 
-# user-specific binary namings (TODO: to be set in an external file)
-TCOFFEE = 't_coffee'
-GBLOCKS = 'biocomp.gblocks'
 
-# flags
 EMAIL   = 'email'
 AMINO   = 'amino'
 NUCLEIC = 'nucleic'
@@ -29,6 +25,10 @@ GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
 GBLOCKS_FLANK_END   = "]"
 
+# user-specific binary namings (TODO: to be set in an external file)
+TCOFFEE = 't_coffee'
+GBLOCKS = 'biocomp.gblocks'
+
 # CLI options
 SOPT_MAIL = 'e'
 SOPT_AMIN = 'a'
@@ -36,6 +36,7 @@ SOPT_NUCL = 'n'
 LOPT_MAIL = 'email'
 LOPT_AMIN = 'amino'
 LOPT_NUCL = 'nucleic'
+
 
 # usage
 #
