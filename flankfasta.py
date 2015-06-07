@@ -2,7 +2,7 @@
 # whose sequence alignment is optimized for performing Phylogenetic
 # Analysis via calculation of Maximum Likelihood trees.
 # This optimizer needs:
-# - Tcoffee (https://github.com/cbcrg/tcoffee) configured with
+# - Tcoffee (https://github.com/cbcrg/tcoffee) configured ith
 #   Mafft, Probcons, Muscle;
 # - Gblocks (http://molevol.cmima.csic.es/castresana/Gblocks.html)
 #
@@ -14,17 +14,28 @@ import sys
 import os
 from os.path import isfile, join, abspath, dirname, basename
 
+# user-specific binary namings (TODO: to be set in an external file)
+TCOFFEE = 't_coffee'
+GBLOCKS = 'biocomp.gblocks'
+
+# flags
 EMAIL   = 'email'
 AMINO   = 'amino'
 NUCLEIC = 'nucleic'
-aln_ext = '.fasta_aln'
-aln_ext__optimized = '_gb.txt'
-aln_ext__flanked   = '_flanked.fasta'
-TCOFFEE = 't_coffee'
-GBLOCKS = 'biocomp.gblocks'
+FASTA_EXT = 'fasta_aln'
+FASTA_EXT__OPTIMIZED = '_gb.txt'
+FASTA_EXT__FLANKED   = '_flanked.fasta'
 GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
 GBLOCKS_FLANK_END   = "]"
+
+# CLI options
+SOPT_MAIL = 'e'
+SOPT_AMIN = 'a'
+SOPT_NUCL = 'n'
+LOPT_MAIL = 'email'
+LOPT_AMIN = 'amino'
+LOPT_NUCL = 'nucleic'
 
 # usage
 #
@@ -33,11 +44,11 @@ def print_usage():
     Prints usage
     '''
     command = basename(sys.argv[0])
-    print(command + str('-' + lopt_mail) +
+    print(command + str('-' + SOPT_MAIL) +
             "\tset the user's e-mail")
-    print(command + str('-' + lopt_amin) +
+    print(command + str('-' + SOPT_AMIN) +
             "\tset the directory holding FASTA protein sequence alignment files")
-    print(command + str('-' + lopt_nucl) +
+    print(command + str('-' + SOPT_NUCL) +
             "\tset the directory holding FASTA nucleic-acid sequence alignment files")
 
 
@@ -138,28 +149,22 @@ def get_command_line(argv):
     nucleic_files = []
     amino_files   = []
     config = {}
-    sopt_mail = 'e'
-    sopt_amin = 'a'
-    sopt_nucl = 'n'
-    lopt_mail = 'email'
-    lopt_amin = 'amino'
-    lopt_nucl = 'nucleic'
 
     try:
         opts, args = getopt.getopt(
                 argv,
-                sopt_mail + ':' + sopt_amin + ':' + sopt_nucl + ':',
-                [str('--' + lopt_mail), str('--' + lopt_amin), str('--' + lopt_nucl)])
+                SOPT_MAIL + ':' + SOPT_AMIN + ':' + SOPT_NUCL + ':',
+                [str('--' + LOPT_MAIL), str('--' + LOPT_AMIN), str('--' + LOPT_NUCL)])
     except getopt.GetoptError:
         print_usage()
         sys.exit()
 
     for opt, arg in opts:
-        if opt in (str('-' + sopt_nucl), lopt_nucl):
+        if opt in (str('-' + SOPT_NUCL), LOPT_NUCL):
             nucleic_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
-        if opt in (str('-' + sopt_amin), lopt_amin):
+        if opt in (str('-' + SOPT_AMIN), LOPT_AMIN):
             amino_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
-        if opt in (str('-' + sopt_mail), lopt_mail):
+        if opt in (str('-' + SOPT_MAIL), LOPT_MAIL):
             email = arg
 
     if ((len(amino_files) + len(nucleic_files)) == 0) or (email == ''):
@@ -195,12 +200,12 @@ def optimize_alignment(alignment_file, sequence_type):
     subprocess.call(gblocks_call)
 
     # restrict the FASTA alignment with the Gblocks flanked positions
-    optimized_alignment_file = alignment_file + aln_ext__optimized
+    optimized_alignment_file = alignment_file + FASTA_EXT__OPTIMIZED
     flanks = get_flanks(optimized_alignment_file)
     ofd = read_flanked_fasta(fd, flanks)
 
     # write the Gblocks optimized fasta alignment
-    flanked_file = alignment_file + aln_ext__flanked
+    flanked_file = alignment_file + FASTA_EXT__FLANKED
     write_fasta(ofd, flanked_file)
 
 
@@ -219,7 +224,7 @@ def sequence_alignment(in_file):
     tcoffee_seqmet  = '-in=S' + in_file + ',Mmafft_msa,Mmuscle_msa,Mprobcons_msa'
     tcoffee_cpus    = '2'
     tcoffee_outfmt  = '-output=fasta'
-    tcoffee_outfile = '-outfile=' + str(in_file.replace('.fas', '.fasta_aln'))
+    tcoffee_outfile = '-outfile=' + str(in_file.replace('.fas', str('.' + FASTA_EXT)))
 
     # Tcoffee alignment
     print '\n# Tcoffee sequence alignment on file \"' + in_file + '\"'
@@ -229,7 +234,7 @@ def sequence_alignment(in_file):
 
 
     # read the fasta alignment as a dictionary
-    alignment_file = in_file.replace('.fas', aln_ext)
+    alignment_file = in_file.replace('.fas', str('.' + FASTA_EXT))
     optimize_alignment(alignment_file, NUCLEIC)
 
     os.chdir(parent_dir)
@@ -257,7 +262,7 @@ def structural_alignment(in_file):
     # given file using Tcoffee Psi-BLAST
     subprocess.call([TCOFFEE, str('-in=S' + in_file),
         '-mode psicoffee', str('-email ' + config[EMAIL]),
-        '-multi_core', '-output=fasta_aln'])
+        '-multi_core', str('-output=' + FASTA_EXT)])
 
     # structural alignment step 2:
     #
@@ -272,18 +277,18 @@ def structural_alignment(in_file):
     # where d for is for diffraction (X-Ray) and n for NMR.
     subprocess.call([TCOFFEE, str('-in=S' + in_file),
         '-mode expresso', '-pdb_type=dn', str('-email ' + config[EMAIL]),
-        '-multi_core', '-output=fasta_aln'])
+        '-multi_core', str('-output=' + FASTA_EXT)])
 
     # structural alignment step 3:
     #
     # Refinement of the previous methods
     subprocess.call([TCOFFEE, str('-in=S' + in_file),
         '-mode accurate', str('-email ' + config[EMAIL]),
-        '-multi_core', '-output=fasta_aln'])
+        '-multi_core', str('-output=' + FASTA_EXT)])
 
 
     # read the fasta alignment as a dictionary
-    alignment_file = in_file.replace('.fas', aln_ext)
+    alignment_file = in_file.replace('.fas', str('.' + FASTA_EXT))
     optimize_alignment(alignment_file, AMINO)
 
     os.chdir(parent_dir)
