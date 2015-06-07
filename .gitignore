@@ -1,1 +1,7 @@
+*.dnd
+*.fas
+*.fasta
+*.prf
 *.swp
+*.tempalte_list
+*fasta_aln*
