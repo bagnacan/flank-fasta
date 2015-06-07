@@ -20,17 +20,25 @@ NUCLEIC = 'nucleic'
 aln_ext = '.fasta_aln'
 aln_ext__optimized = '_gb.txt'
 aln_ext__flanked   = '_flanked.fasta'
-script__gblocks_alignment_optimization = 'biocomp.gblocks'
+TCOFFEE = 't_coffee'
+GBLOCKS = 'biocomp.gblocks'
 GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
 GBLOCKS_FLANK_END   = "]"
 
 # usage
+#
 def print_usage():
     '''
     Prints usage
     '''
-    print 'u suc'
+    command = basename(sys.argv[0])
+    print(command + str('-' + lopt_mail) +
+            "\tset the user's e-mail")
+    print(command + str('-' + lopt_amin) +
+            "\tset the directory holding FASTA protein sequence alignment files")
+    print(command + str('-' + lopt_nucl) +
+            "\tset the directory holding FASTA nucleic-acid sequence alignment files")
 
 
 
@@ -175,10 +183,10 @@ def optimize_alignment(alignment_file, sequence_type):
     # launch Gblocks differentiating between protein sequences and
     # nucleic sequences
     if sequence_type == AMINO:
-        gblocks_call = [script__gblocks_alignment_optimization,
+        gblocks_call = [GBLOCKS,
                 alignment_file, '-t=p', '-e=_gb', '-p=t', '-b4=5']
     else:
-        gblocks_call = [script__gblocks_alignment_optimization,
+        gblocks_call = [GBLOCKS,
                 alignment_file, '-t=d', '-e=_gb', '-p=t', '-b4=5']
         
     fd = read_fasta(alignment_file)
@@ -216,7 +224,7 @@ def sequence_alignment(in_file):
     # Tcoffee alignment
     print '\n# Tcoffee sequence alignment on file \"' + in_file + '\"'
     print '#'
-    subprocess.call(['t_coffee', tcoffee_seqmet, tcoffee_outfile,
+    subprocess.call([TCOFFEE, tcoffee_seqmet, tcoffee_outfile,
         '-cpu', tcoffee_cpus, tcoffee_outfmt])
 
 
@@ -247,7 +255,7 @@ def structural_alignment(in_file):
     #
     # Make a multiple profile alignment of all the sequences in the
     # given file using Tcoffee Psi-BLAST
-    subprocess.call(['t_coffee', str('-in=S' + in_file),
+    subprocess.call([TCOFFEE, str('-in=S' + in_file),
         '-mode psicoffee', str('-email ' + config[EMAIL]),
         '-multi_core', '-output=fasta_aln'])
 
@@ -262,14 +270,14 @@ def structural_alignment(in_file):
     # By default Expresso fetches only XRAY structures, but it is
     # possible to control this behavior via the flag -pdb_type=dn
     # where d for is for diffraction (X-Ray) and n for NMR.
-    subprocess.call(['t_coffee', str('-in=S' + in_file),
+    subprocess.call([TCOFFEE, str('-in=S' + in_file),
         '-mode expresso', '-pdb_type=dn', str('-email ' + config[EMAIL]),
         '-multi_core', '-output=fasta_aln'])
 
     # structural alignment step 3:
     #
     # Refinement of the previous methods
-    subprocess.call(['t_coffee', str('-in=S' + in_file),
+    subprocess.call([TCOFFEE, str('-in=S' + in_file),
         '-mode accurate', str('-email ' + config[EMAIL]),
         '-multi_core', '-output=fasta_aln'])
 
