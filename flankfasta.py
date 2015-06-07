@@ -30,6 +30,7 @@ TCOFFEE = 't_coffee'
 GBLOCKS = 'biocomp.gblocks'
 
 # CLI options
+cli = {}
 SOPT_MAIL = 'e'
 SOPT_AMIN = 'a'
 SOPT_NUCL = 'n'
@@ -44,12 +45,12 @@ def print_usage():
     '''
     Prints usage
     '''
-    command = basename(sys.argv[0])
-    print(command + str('-' + SOPT_MAIL) +
+    print("Usage: " + basename(sys.argv[0]))
+    print(str('\t-' + SOPT_MAIL) +
             "\tset the user's e-mail")
-    print(command + str('-' + SOPT_AMIN) +
+    print(str('\t-' + SOPT_AMIN) +
             "\tset the directory holding FASTA protein sequence alignment files")
-    print(command + str('-' + SOPT_NUCL) +
+    print(str('\t-' + SOPT_NUCL) +
             "\tset the directory holding FASTA nucleic-acid sequence alignment files")
 
 
@@ -149,7 +150,6 @@ def get_command_line(argv):
     email = ''
     nucleic_files = []
     amino_files   = []
-    config = {}
 
     try:
         opts, args = getopt.getopt(
@@ -172,10 +172,9 @@ def get_command_line(argv):
         print_usage()
         sys.exit()
 
-    config[NUCLEIC] = nucleic_files
-    config[AMINO]   = amino_files
-    config[EMAIL]   = email
-    return config
+    cli[NUCLEIC] = nucleic_files
+    cli[AMINO]   = amino_files
+    cli[EMAIL]   = email
 
 
 
@@ -262,7 +261,7 @@ def structural_alignment(in_file):
     # Make a multiple profile alignment of all the sequences in the
     # given file using Tcoffee Psi-BLAST
     subprocess.call([TCOFFEE, str('-in=S' + in_file),
-        '-mode psicoffee', str('-email ' + config[EMAIL]),
+        '-mode psicoffee', str('-email ' + cli[EMAIL]),
         '-multi_core', str('-output=' + FASTA_EXT)])
 
     # structural alignment step 2:
@@ -277,14 +276,14 @@ def structural_alignment(in_file):
     # possible to control this behavior via the flag -pdb_type=dn
     # where d for is for diffraction (X-Ray) and n for NMR.
     subprocess.call([TCOFFEE, str('-in=S' + in_file),
-        '-mode expresso', '-pdb_type=dn', str('-email ' + config[EMAIL]),
+        '-mode expresso', '-pdb_type=dn', str('-email ' + cli[EMAIL]),
         '-multi_core', str('-output=' + FASTA_EXT)])
 
     # structural alignment step 3:
     #
     # Refinement of the previous methods
     subprocess.call([TCOFFEE, str('-in=S' + in_file),
-        '-mode accurate', str('-email ' + config[EMAIL]),
+        '-mode accurate', str('-email ' + cli[EMAIL]),
         '-multi_core', str('-output=' + FASTA_EXT)])
 
 
@@ -300,7 +299,7 @@ if __name__ == '__main__':
     reload(sys)
     
     # get the list of nucleic/aminoacid sequence files
-    cli = get_command_line(sys.argv[1:])
+    get_command_line(sys.argv[1:])
 
     # nucleic acid sequences from non-coding DNA strands are aligned
     # using Tcoffee and optimized using Gblocks
