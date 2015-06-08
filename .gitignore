@@ -3,5 +3,5 @@
 *.fasta
 *.prf
 *.swp
-*.tempalte_list
+*.template_list
 *fasta_aln*
