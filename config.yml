@@ -1,0 +1,8 @@
+#
+# flankfasta configuration file
+#
+
+# system-dependent binary namings
+bin:
+  tcoffee:   t_coffee
+  gblocks:   gblocks

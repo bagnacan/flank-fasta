@@ -17,6 +17,7 @@ import os
 from os.path import isfile, join, abspath, dirname, basename
 
 
+CONF    = 'config'
 EMAIL   = 'email'
 AMINO   = 'amino'
 NUCLEIC = 'nucleic'
@@ -27,18 +28,19 @@ GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
 GBLOCKS_FLANK_END   = "]"
 
-# user-specific binary namings (TODO: to be set in an external file)
-TCOFFEE = 't_coffee'
-GBLOCKS = 'biocomp.gblocks'
-
 # CLI options
 cli = {}
+cli[CONF] = 'config.yml'
+SOPT_CONF = 'c'
 SOPT_MAIL = 'e'
 SOPT_AMIN = 'a'
 SOPT_NUCL = 'n'
+LOPT_CONF = 'config'
 LOPT_MAIL = 'email'
 LOPT_AMIN = 'amino'
 LOPT_NUCL = 'nucleic'
+TCOFFEE = 'tcoffee'
+GBLOCKS = 'gblocks'
 
 
 # usage
@@ -48,11 +50,13 @@ def print_usage():
     Prints usage
     '''
     print("Usage: " + basename(sys.argv[0]))
-    print(str('\t-' + SOPT_MAIL) +
+    print(str('\t-' + SOPT_CONF + '/--' + LOPT_CONF) +
+            "\tset the configuration file (defaults to \"config.yml\")")
+    print(str('\t-' + SOPT_MAIL + '/--' + LOPT_MAIL) +
             "\tset the user's e-mail")
-    print(str('\t-' + SOPT_AMIN) +
+    print(str('\t-' + SOPT_AMIN + '/--' + LOPT_AMIN) +
             "\tset the directory holding FASTA protein sequence alignment files")
-    print(str('\t-' + SOPT_NUCL) +
+    print(str('\t-' + SOPT_NUCL + '/--' + LOPT_NUCL) +
             "\tset the directory holding FASTA nucleic-acid sequence alignment files")
 
 
@@ -140,14 +144,34 @@ def read_flanked_fasta(fasta, flanks):
 
 
 
+# read YAML configuration file
+#
+def read_config(config_file):
+    '''
+    Reads the YAML configuration file
+    '''
+    try:
+        conf = open(config_file, 'r')
+        config = yaml.load(conf)
+        cli[TCOFFEE] = config["bin"]["tcoffee"]
+        cli[GBLOCKS] = config["bin"]["gblocks"]
+        conf.close()
+    except yaml.YAMLError:
+        print("Error: Bad syntax in " + arg + " configuration file.")
+        print_usage()
+        sys.exit()
+
+
+
 # get command line
 #
 def get_command_line(argv):
     '''
     Returns the configuraion from the given command line arguments:
+    -c/--config   configuration file
+    -e/--email    the user's e-mail
     -a/--amino    directory whose files contain amino acid sequences
     -n/--nucleic  directory whose files contain nucleic acid sequences
-    -e/--email    the user's e-mail
     '''
     email = ''
     nucleic_files = []
@@ -155,14 +179,21 @@ def get_command_line(argv):
 
     try:
         opts, args = getopt.getopt(
-                argv,
-                SOPT_MAIL + ':' + SOPT_AMIN + ':' + SOPT_NUCL + ':',
-                [str('--' + LOPT_MAIL), str('--' + LOPT_AMIN), str('--' + LOPT_NUCL)])
+            argv,
+            str(SOPT_CONF + ':' + SOPT_MAIL + ':' + SOPT_AMIN + ':' + SOPT_NUCL + ':'),
+            [str('--' + LOPT_CONF), str('--' + LOPT_MAIL), str('--' + LOPT_AMIN), str('--' + LOPT_NUCL)])
     except getopt.GetoptError:
         print_usage()
         sys.exit()
 
     for opt, arg in opts:
+        if opt in (str('-' + SOPT_CONF), LOPT_CONF):
+            if not isfile(arg):
+                print("Error: " + arg + " configuration file not found.")
+                print_usage()
+                sys.exit()
+            else:
+                cli[CONF] = arg
         if opt in (str('-' + SOPT_NUCL), LOPT_NUCL):
             nucleic_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
         if opt in (str('-' + SOPT_AMIN), LOPT_AMIN):
@@ -174,6 +205,7 @@ def get_command_line(argv):
         print_usage()
         sys.exit()
 
+    read_config(cli[CONF])
     cli[NUCLEIC] = nucleic_files
     cli[AMINO]   = amino_files
     cli[EMAIL]   = email
@@ -190,10 +222,10 @@ def optimize_alignment(alignment_file, sequence_type):
     # launch Gblocks differentiating between protein sequences and
     # nucleic sequences
     if sequence_type == AMINO:
-        gblocks_call = [GBLOCKS,
+        gblocks_call = [cli[GBLOCKS],
                 alignment_file, '-t=p', '-e=_gb', '-p=t', '-b4=5']
     else:
-        gblocks_call = [GBLOCKS,
+        gblocks_call = [cli[GBLOCKS],
                 alignment_file, '-t=d', '-e=_gb', '-p=t', '-b4=5']
         
     fd = read_fasta(alignment_file)
@@ -231,7 +263,7 @@ def sequence_alignment(in_file):
     # Tcoffee alignment
     print '\n# Tcoffee sequence alignment on file \"' + in_file + '\"'
     print '#'
-    subprocess.call([TCOFFEE, tcoffee_seqmet, tcoffee_outfile,
+    subprocess.call([cli[TCOFFEE], tcoffee_seqmet, tcoffee_outfile,
         '-cpu', tcoffee_cpus, tcoffee_outfmt])
 
 
@@ -262,7 +294,7 @@ def structural_alignment(in_file):
     #
     # Make a multiple profile alignment of all the sequences in the
     # given file using Tcoffee Psi-BLAST
-    subprocess.call([TCOFFEE, str('-in=S' + in_file),
+    subprocess.call([cli[TCOFFEE], str('-in=S' + in_file),
         '-mode psicoffee', str('-email ' + cli[EMAIL]),
         '-multi_core', str('-output=' + FASTA_EXT)])
 
@@ -277,14 +309,14 @@ def structural_alignment(in_file):
     # By default Expresso fetches only XRAY structures, but it is
     # possible to control this behavior via the flag -pdb_type=dn
     # where d for is for diffraction (X-Ray) and n for NMR.
-    subprocess.call([TCOFFEE, str('-in=S' + in_file),
+    subprocess.call([cli[TCOFFEE], str('-in=S' + in_file),
         '-mode expresso', '-pdb_type=dn', str('-email ' + cli[EMAIL]),
         '-multi_core', str('-output=' + FASTA_EXT)])
 
     # structural alignment step 3:
     #
     # Refinement of the previous methods
-    subprocess.call([TCOFFEE, str('-in=S' + in_file),
+    subprocess.call([cli[TCOFFEE], str('-in=S' + in_file),
         '-mode accurate', str('-email ' + cli[EMAIL]),
         '-multi_core', str('-output=' + FASTA_EXT)])
 
