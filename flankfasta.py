@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Quick and dirty script to transform FASTA files in FASTA files
 # whose sequence alignment is optimized for performing Phylogenetic
 # Analysis via calculation of Maximum Likelihood trees.
