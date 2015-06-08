@@ -14,6 +14,7 @@ import getopt
 import subprocess
 import sys
 import os
+import yaml
 from os.path import isfile, join, abspath, dirname, basename
 
 
@@ -144,6 +145,28 @@ def read_flanked_fasta(fasta, flanks):
 
 
 
+# check the presence of the given configuration binaries
+#
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    print("Error: Program \"" + program + "\" not on system path.")
+    return None
+
+
+
 # read YAML configuration file
 #
 def read_config(config_file):
@@ -153,12 +176,15 @@ def read_config(config_file):
     try:
         conf = open(config_file, 'r')
         config = yaml.load(conf)
-        cli[TCOFFEE] = config["bin"]["tcoffee"]
-        cli[GBLOCKS] = config["bin"]["gblocks"]
+        cli[TCOFFEE] = which(config["bin"]["tcoffee"])
+        cli[GBLOCKS] = which(config["bin"]["gblocks"])
         conf.close()
     except yaml.YAMLError:
         print("Error: Bad syntax in " + arg + " configuration file.")
         print_usage()
+        sys.exit()
+
+    if (cli[GBLOCKS] == None) or (cli[TCOFFEE] == None):
         sys.exit()
 
 
