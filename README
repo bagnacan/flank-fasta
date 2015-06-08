@@ -1,0 +1,19 @@
+Introduction:
+FlankFasta is a script for the transformation of FASTA files in FASTA files optimized for performing Phylogenetic Analysis. This is done relying on Tcoffee for performing sequence and structural alignment (where PDB candidate templates are available) and Gblocks for the elimination of not-well-conserved alignment regions.
+Requirements:
+Make sure to have all following softwares installed:
+- Yaml (http://yaml.org/)
+- Tcoffee (https://github.com/cbcrg/tcoffee) configured with Mafft, Probcons, Muscle
+- Gblocks (http://molevol.cmima.csic.es/castresana/Gblocks.html)
+
+Usage:
+Divide your FASTA files in two directories, one holding all nucleic acid sequence files, and the other holding all amino acid sequence files.
+If you have nucleic acid sequence files whose sequences belong to coding DNA genes and you want to translate them into protein sequences, then translate them using your preferred software (i.e. Seaview), and keep them ordered in the amino acid sequence file directory.
+Now it is possible to use FlankFasta to perform sequence/structural alignment using Tcoffee and Gblocks.
+Nucleic acid sequences are aligned via Tcoffee sequence alignment, while amino acid sequences are first
+compared against PDB for a candidate template extraction, and then aligned using Tcoffee structural alignment.
+Both alignments undergo a Gblocks optimization, which shrinks the original sequence/structural alignment to their most conserved regions (flanks).
+The result files for these operations are hold in the flanked FASTA files, named *_flanked.fasta.
+Launch the executable with no options to see a brief help about FlankFasta's usage.
+
+TODO: Gblocks parameters are not tweakable
