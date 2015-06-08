@@ -51,13 +51,13 @@ def print_usage():
     '''
     print("Usage: " + basename(sys.argv[0]))
     print(str('\t-' + SOPT_CONF + '/--' + LOPT_CONF) +
-            "\tset the configuration file (defaults to \"config.yml\")")
+            "\tset configuration file (defaults to \"config.yml\")")
     print(str('\t-' + SOPT_MAIL + '/--' + LOPT_MAIL) +
-            "\tset the user's e-mail")
+            "\tset user's e-mail")
     print(str('\t-' + SOPT_AMIN + '/--' + LOPT_AMIN) +
-            "\tset the directory holding FASTA protein sequence alignment files")
+            "\tset directory holding FASTA protein sequence alignment files")
     print(str('\t-' + SOPT_NUCL + '/--' + LOPT_NUCL) +
-            "\tset the directory holding FASTA nucleic-acid sequence alignment files")
+            "\tset directory holding FASTA nucleic-acid sequence alignment files")
 
 
 
