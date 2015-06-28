@@ -19,13 +19,13 @@ Make sure to have all following softwares installed:
 
 Usage:
 
-Divide your FASTA files in two directories, one holding all nucleic
-acid sequence files, and the other holding all amino acid sequence
+Divide your FASTA files in two directories: the first with all
+nucleic acid sequence files, the latter for all amino acid sequence
 files.
 If you have nucleic acid sequence files whose sequences belong to
 coding DNA genes and you want to translate them into protein
 sequences, then translate them using your preferred software (i.e.
-Seaview), and keep them ordered in the amino acid sequence file
+Seaview) and keep them ordered in the amino acid sequence file
 directory.
 Launch the executable with no options to see a brief help about
 FlankFasta's usage.

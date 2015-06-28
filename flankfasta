@@ -162,22 +162,44 @@ def which(program):
             if is_exe(exe_file):
                 return exe_file
 
-    print("Error: Program \"" + program + "\" not on system path.")
+    print("Error: Program \"" + program + "\" not set or not on system path.")
     return None
 
 
 
 # read YAML configuration file
 #
-def read_config(config_file):
+def read_config_file(config_file):
     '''
-    Reads the YAML configuration file
+    Reads the YAML configuration file without overwriting all the
+    parameters from the command line call.
     '''
     try:
         conf = open(config_file, 'r')
         config = yaml.load(conf)
-        cli[TCOFFEE] = which(config["bin"]["tcoffee"])
-        cli[GBLOCKS] = which(config["bin"]["gblocks"])
+        
+        # configuration file mandatory parameters
+        cli[TCOFFEE] = config["bin"]["tcoffee"]
+        cli[GBLOCKS] = config["bin"]["gblocks"]
+
+        # command line/configuration file mandatory parameters
+        # (command line has precedence over configuration file)
+        if "user" in config.keys():
+            if EMAIL not in list(cli.keys()):
+                cli[EMAIL] = config["user"][EMAIL]
+
+        if "directories" in list(config.keys()):
+            if NUCLEIC not in cli.keys():
+                directory = config["directories"][NUCLEIC]
+                files = [join(directory, i) 
+                        for i in os.listdir(directory) if isfile(join(directory, i))]
+                cli[NUCLEIC] = files
+                
+            if AMINO not in list(cli.keys()):
+                directory = config["directories"][AMINO]
+                files = [join(directory, i) 
+                        for i in os.listdir(directory) if isfile(join(directory, i))]
+                cli[AMINO] = files
         conf.close()
     except yaml.YAMLError:
         print("Error: Bad syntax in " + arg + " configuration file.")
@@ -185,6 +207,7 @@ def read_config(config_file):
         sys.exit()
 
     if (cli[GBLOCKS] == None) or (cli[TCOFFEE] == None):
+        print_usage()
         sys.exit()
 
 
@@ -193,15 +216,18 @@ def read_config(config_file):
 #
 def get_command_line(argv):
     '''
-    Returns the configuraion from the given command line arguments:
+    Returns the configuration from the given command line arguments:
     -c/--config   configuration file
     -e/--email    the user's e-mail
     -a/--amino    directory whose files contain amino acid sequences
     -n/--nucleic  directory whose files contain nucleic acid sequences
+
+    Provided command line options have precedence, and will overwrite
+    the corresponding configuration file entries when provided.
     '''
-    email = ''
+
     nucleic_files = []
-    amino_files   = []
+    amino_files = []
 
     try:
         opts, args = getopt.getopt(
@@ -222,20 +248,23 @@ def get_command_line(argv):
                 cli[CONF] = arg
         if opt in (str('-' + SOPT_NUCL), LOPT_NUCL):
             nucleic_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
+            cli[NUCLEIC] = nucleic_files
         if opt in (str('-' + SOPT_AMIN), LOPT_AMIN):
             amino_files = [join(arg, i) for i in os.listdir(arg) if isfile(join(arg, i))]
+            cli[AMINO] = amino_files
         if opt in (str('-' + SOPT_MAIL), LOPT_MAIL):
-            email = arg
+            cli[EMAIL] = arg
 
-    if ((len(amino_files) + len(nucleic_files)) == 0) or (email == ''):
+    # read configuration file
+    read_config_file(cli[CONF])
+
+    if ((len(cli[AMINO]) + len(cli[NUCLEIC])) == 0) or (cli[EMAIL] == ''):
         print_usage()
         sys.exit()
 
-    read_config(cli[CONF])
-    cli[NUCLEIC] = nucleic_files
-    cli[AMINO]   = amino_files
-    cli[EMAIL]   = email
+    print str(cli)
 
+ 
 
 
 # optimize the protein/nucleic-acid sequence alignment

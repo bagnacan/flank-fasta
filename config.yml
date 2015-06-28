@@ -2,7 +2,25 @@
 # flankfasta configuration file
 #
 
+#==========================================
+# system variables
+# (uncomment to edit the following section)
+
+# user identifiers
+#user:
+  #email:     user@example.com
+
 # system-dependent binary namings
 bin:
   tcoffee:   t_coffee
   gblocks:   gblocks
+
+
+#==========================================
+# pipeline variables
+# (uncomment to edit the following section)
+
+# source alignmen files' directories
+#directories:
+  #nucleic:   nucleic_acid_seq_directory
+  #amino:     amino_acid_seq_directory
