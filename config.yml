@@ -10,8 +10,11 @@
 #user:
   #email:     user@example.com
 
-# system-dependent binary namings
-bin:
+# system-dependent configuration
+system:
+  # number of CPUs (default = 1)
+  #cpus:   2
+  # required binaries naming
   tcoffee:   t_coffee
   gblocks:   gblocks
 
@@ -25,11 +28,7 @@ bin:
   #nucleic:   nucleic_acid_seq_directory
   #amino:     amino_acid_seq_directory
 
-# GBlocks options
-# (documentation: http://molevol.cmima.csic.es/castresana/Gblocks/Gblocks_documentation.html)
-#
-# option "-b4" : minimum length of a block
-# default is 5
+# GBlocks minimum length of a block (default = 5)
 #gblocks_opt:
-  #amin_block:    5
-  #nucl_block:    5
+  #amin_block:    10
+  #nucl_block:    10

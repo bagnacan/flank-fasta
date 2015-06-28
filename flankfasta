@@ -28,10 +28,8 @@ FASTA_EXT__FLANKED   = '_flanked.fasta'
 GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
 GBLOCKS_FLANK_END   = "]"
-NUCLEIC_BLOCK = "nucl_block"
-AMINO_BLOCK   = "amin_block"
 
-# CLI options
+# cli options
 cli = {}
 cli[CONF] = 'config.yml'
 SOPT_CONF = 'c'
@@ -42,8 +40,12 @@ LOPT_CONF = 'config'
 LOPT_MAIL = 'email'
 LOPT_AMIN = 'amino'
 LOPT_NUCL = 'nucleic'
+# config file options
+CPUS    = 'cpus'
 TCOFFEE = 'tcoffee'
 GBLOCKS = 'gblocks'
+NUCLEIC_BLOCK = "nucl_block"
+AMINO_BLOCK   = "amin_block"
 
 
 # usage
@@ -176,20 +178,42 @@ def read_config_file(config_file):
     Reads the YAML configuration file without overwriting all the
     parameters from the command line call.
     '''
+
+    # defaults
+    #
+    #  CPUs
+    default_cpus = '1'
+    #  GBlocks options
+    #  (http://molevol.cmima.csic.es/castresana/Gblocks/Gblocks_documentation.html)
+    default_nucleic_block = '5'
+    default_amino_block   = '5'
+
     try:
         conf = open(config_file, 'r')
         config = yaml.load(conf)
         
         # configuration file optional parameters
-        if "gblocks_opt" in list(cli.keys()):
-            if NUCLEIC_BLOCK in list(cli["gblocks_opt"]):
-                cli[NUCLEIC_BLOCK] = config["gblocks_opt"][NUCLEIC_BLOCK]
-            if AMINO_BLOCK in list(cli["gblocks_opt"]):
-                cli[AMINO_BLOCK]   = config["gblocks_opt"][AMINO_BLOCK]
+        if 'system' in list(config.keys()):
+            if CPUS in list(config['system'].keys()):
+                cli[CPUS] = str(config['system'][CPUS])
+            else:
+                cli[CPUS] = default_cpus
+        if 'gblocks_opt' in list(config.keys()):
+            if NUCLEIC_BLOCK in list(config['gblocks_opt'].keys()):
+                cli[NUCLEIC_BLOCK] = str(config['gblocks_opt'][NUCLEIC_BLOCK])
+            else:
+                cli[NUCLEIC_BLOCK] = default_nucleic_block
+            if AMINO_BLOCK in list(config['gblocks_opt']):
+                cli[AMINO_BLOCK] = str(config['gblocks_opt'][AMINO_BLOCK])
+            else:
+                cli[AMINO_BLOCK] = default_amino_block
+        else:
+            cli[NUCLEIC_BLOCK] = default_nucleic_block
+            cli[AMINO_BLOCK]   = default_amino_block
 
         # configuration file mandatory parameters
-        cli[TCOFFEE] = config["bin"]["tcoffee"]
-        cli[GBLOCKS] = config["bin"]["gblocks"]
+        cli[TCOFFEE] = config['system']['tcoffee']
+        cli[GBLOCKS] = config['system']['gblocks']
 
         # command line/configuration file mandatory parameters
         # (command line has precedence over configuration file)
@@ -284,25 +308,14 @@ def optimize_alignment(alignment_file, sequence_type):
     of the given protein/nucleic-acid sequence alignment
     '''
 
-    # check config file GBlocks options
-    # http://molevol.cmima.csic.es/castresana/Gblocks/Gblocks_documentation.html
-    #
-    # option "-b4" : minimum length for block
-    amino_block = '-b4=5'
-    if AMINO_BLOCK in list(cli.keys()):
-        amino_block = str('-b4=' + cli[AMINO_BLOCK])
-    nucleic_block = '-b4=5'
-    if NUCLEIC_BLOCK in list(cli.keys()):
-        nucleic_block = str('-b4=' + cli[NUCLEIC_BLOCK])
-
     # launch Gblocks differentiating between protein sequences and
     # nucleic sequences
     if sequence_type == AMINO:
         gblocks_call = [cli[GBLOCKS],
-                alignment_file, '-t=p', '-e=_gb', '-p=t', amino_block]
+                alignment_file, '-t=p', '-e=_gb', '-p=t', str('-b4=' + cli[AMINO_BLOCK])]
     else:
         gblocks_call = [cli[GBLOCKS],
-                alignment_file, '-t=d', '-e=_gb', '-p=t', nucleic_block]
+                alignment_file, '-t=d', '-e=_gb', '-p=t', str('-b4=' + cli[NUCLEIC_BLOCK])]
         
     fd = read_fasta(alignment_file)
 
@@ -332,7 +345,9 @@ def sequence_alignment(in_file):
     in_file = basename(in_file)
 
     tcoffee_seqmet  = '-in=S' + in_file + ',Mmafft_msa,Mmuscle_msa,Mprobcons_msa'
-    tcoffee_cpus    = '2'
+    tcoffee_cpus    = '-multi_core=no' # default is no multi-core
+    if cli[CPUS] != '1':
+        tcoffee_cpus = str('-multi_core=0 -n_core=' + cli[CPUS])
     tcoffee_outfmt  = '-output=fasta'
     tcoffee_outfile = '-outfile=' + str(in_file.replace('.fas', str('.' + FASTA_EXT)))
 
@@ -340,7 +355,7 @@ def sequence_alignment(in_file):
     print '\n# Tcoffee sequence alignment on file \"' + in_file + '\"'
     print '#'
     subprocess.call([cli[TCOFFEE], tcoffee_seqmet, tcoffee_outfile,
-        '-cpu', tcoffee_cpus, tcoffee_outfmt])
+        tcoffee_cpus, tcoffee_outfmt])
 
 
     # read the fasta alignment as a dictionary
@@ -365,6 +380,10 @@ def structural_alignment(in_file):
     # Tcoffee alignment
     print '\n# Tcoffee structural alignment on file \"' + in_file + '\"'
     print '#'
+
+    tcoffee_cpus = '-multi_core=no' # default is no multi-core
+    if cli[CPUS] != 1:
+        tcoffee_cpus = str('-multi_core=0 -n_core=' + cli[CPUS])
     
     # structural alignment step 1:
     #
@@ -372,7 +391,7 @@ def structural_alignment(in_file):
     # given file using Tcoffee Psi-BLAST
     subprocess.call([cli[TCOFFEE], str('-in=S' + in_file),
         '-mode psicoffee', str('-email ' + cli[EMAIL]),
-        '-multi_core', str('-output=' + FASTA_EXT)])
+        tcoffee_cpus, str('-output=' + FASTA_EXT)])
 
     # structural alignment step 2:
     #
@@ -387,14 +406,14 @@ def structural_alignment(in_file):
     # where d for is for diffraction (X-Ray) and n for NMR.
     subprocess.call([cli[TCOFFEE], str('-in=S' + in_file),
         '-mode expresso', '-pdb_type=dn', str('-email ' + cli[EMAIL]),
-        '-multi_core', str('-output=' + FASTA_EXT)])
+        tcoffee_cpus, str('-output=' + FASTA_EXT)])
 
     # structural alignment step 3:
     #
     # Refinement of the previous methods
     subprocess.call([cli[TCOFFEE], str('-in=S' + in_file),
         '-mode accurate', str('-email ' + cli[EMAIL]),
-        '-multi_core', str('-output=' + FASTA_EXT)])
+        tcoffee_cpus, str('-output=' + FASTA_EXT)])
 
 
     # read the fasta alignment as a dictionary

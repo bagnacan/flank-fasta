@@ -29,7 +29,8 @@ Seaview) and keep them ordered in the amino acid sequence file
 directory.
 Be sure to review and edit the configuration file: all programs
 involved in this optimization pipeline are highly parametrizable,
-and the default settings might not be suitable for your problem.
+and the default settings might not be suitable for your problem
+(for instance the number of CPU cores to use).
 Launch the executable with no options to see a brief help about
 FlankFasta's usage.
 
