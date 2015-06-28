@@ -28,6 +28,8 @@ FASTA_EXT__FLANKED   = '_flanked.fasta'
 GBLOCKS_FLANKS = "Flanks:"
 GBLOCKS_FLANK_START = "["
 GBLOCKS_FLANK_END   = "]"
+NUCLEIC_BLOCK = "nucl_block"
+AMINO_BLOCK   = "amin_block"
 
 # CLI options
 cli = {}
@@ -178,6 +180,13 @@ def read_config_file(config_file):
         conf = open(config_file, 'r')
         config = yaml.load(conf)
         
+        # configuration file optional parameters
+        if "gblocks_opt" in list(cli.keys()):
+            if NUCLEIC_BLOCK in list(cli["gblocks_opt"]):
+                cli[NUCLEIC_BLOCK] = config["gblocks_opt"][NUCLEIC_BLOCK]
+            if AMINO_BLOCK in list(cli["gblocks_opt"]):
+                cli[AMINO_BLOCK]   = config["gblocks_opt"][AMINO_BLOCK]
+
         # configuration file mandatory parameters
         cli[TCOFFEE] = config["bin"]["tcoffee"]
         cli[GBLOCKS] = config["bin"]["gblocks"]
@@ -225,7 +234,7 @@ def get_command_line(argv):
     Provided command line options have precedence, and will overwrite
     the corresponding configuration file entries when provided.
     '''
-
+    
     nucleic_files = []
     amino_files = []
 
@@ -258,11 +267,11 @@ def get_command_line(argv):
     # read configuration file
     read_config_file(cli[CONF])
 
-    if ((len(cli[AMINO]) + len(cli[NUCLEIC])) == 0) or (cli[EMAIL] == ''):
+    if ( (AMINO not in list(cli.keys())) or (NUCLEIC not in list(cli.keys())) 
+            or (EMAIL not in list(cli.keys())) ):
+        print("Error: One or more mandatory parameters missing.\n\tCheck the user's email and source directories have been provided.\n\tSet them via command line or configuration file.")
         print_usage()
         sys.exit()
-
-    print str(cli)
 
  
 
@@ -274,14 +283,26 @@ def optimize_alignment(alignment_file, sequence_type):
     Writes a FASTA file containing the optimized version (Gblocks)
     of the given protein/nucleic-acid sequence alignment
     '''
+
+    # check config file GBlocks options
+    # http://molevol.cmima.csic.es/castresana/Gblocks/Gblocks_documentation.html
+    #
+    # option "-b4" : minimum length for block
+    amino_block = '-b4=5'
+    if AMINO_BLOCK in list(cli.keys()):
+        amino_block = str('-b4=' + cli[AMINO_BLOCK])
+    nucleic_block = '-b4=5'
+    if NUCLEIC_BLOCK in list(cli.keys()):
+        nucleic_block = str('-b4=' + cli[NUCLEIC_BLOCK])
+
     # launch Gblocks differentiating between protein sequences and
     # nucleic sequences
     if sequence_type == AMINO:
         gblocks_call = [cli[GBLOCKS],
-                alignment_file, '-t=p', '-e=_gb', '-p=t', '-b4=5']
+                alignment_file, '-t=p', '-e=_gb', '-p=t', amino_block]
     else:
         gblocks_call = [cli[GBLOCKS],
-                alignment_file, '-t=d', '-e=_gb', '-p=t', '-b4=5']
+                alignment_file, '-t=d', '-e=_gb', '-p=t', nucleic_block]
         
     fd = read_fasta(alignment_file)
 

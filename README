@@ -27,6 +27,9 @@ coding DNA genes and you want to translate them into protein
 sequences, then translate them using your preferred software (i.e.
 Seaview) and keep them ordered in the amino acid sequence file
 directory.
+Be sure to review and edit the configuration file: all programs
+involved in this optimization pipeline are highly parametrizable,
+and the default settings might not be suitable for your problem.
 Launch the executable with no options to see a brief help about
 FlankFasta's usage.
 
@@ -43,6 +46,3 @@ regions (flanks).
 The result files for these operations are hold in the flanked FASTA
 files, named *_flanked.fasta.
 
-
-
-TODO: Gblocks parameters are not tweakable

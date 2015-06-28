@@ -24,3 +24,12 @@ bin:
 #directories:
   #nucleic:   nucleic_acid_seq_directory
   #amino:     amino_acid_seq_directory
+
+# GBlocks options
+# (documentation: http://molevol.cmima.csic.es/castresana/Gblocks/Gblocks_documentation.html)
+#
+# option "-b4" : minimum length of a block
+# default is 5
+#gblocks_opt:
+  #amin_block:    5
+  #nucl_block:    5
