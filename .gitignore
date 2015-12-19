@@ -4,4 +4,6 @@
 *.prf
 *.swp
 *.template_list
+flankfasta.yml
 *fasta_aln*
+TODO
